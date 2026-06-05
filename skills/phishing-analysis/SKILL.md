@@ -47,11 +47,86 @@ Analyze phishing emails reported in Jira SOC Service Desk (SOCSD) tickets and po
    - List legitimate vs suspicious indicators
    - Provide actionable recommendations
 
-6. **Post Results to Ticket**
+6. **Update Ticket Fields**
+   - Populate classification metadata in ticket Details section
+   - Set Request Category, Customer Type, Phishing Techniques, etc.
+   - Fill in Attacker's Email Address
+   - Set Phishing Medium
+
+7. **Post Results to Ticket**
    - Add comprehensive analysis as comment
    - Include technical details for SOC review
    - Flag verification steps if headers needed
    - Suggest remediation actions
+
+## Jira Ticket Field Mapping
+
+After analysis, the skill automatically updates these Jira custom fields in the ticket Details section:
+
+### Request Category (`customfield_10805`)
+**Type:** Single select
+**Allowed Values:**
+- `Phishing Report` - Confirmed or suspected phishing attempt
+- `Spam` - Unsolicited bulk email without malicious intent
+- `Internal Email` - Legitimate internal communication
+- `Phishing Exercise` - Security awareness training simulation
+- `Test` - Test ticket
+- `Takedown Request` - Request to take down phishing site/content
+- `Non-phishing Related Concern` - Other security concerns
+
+**Mapping Logic:**
+- ❌ CONFIRMED PHISHING → `Phishing Report`
+- ⚠️ SUSPICIOUS → `Phishing Report`
+- ✅ LEGITIMATE → `Internal Email` or `Non-phishing Related Concern`
+- 📧 Spam without malicious intent → `Spam`
+
+### Customer Type (`customfield_11136`)
+**Type:** Single select
+**Allowed Values:**
+- `Internal (Paidy Employee)` - Report from Paidy staff
+- `External (Paidy Customers)` - Report from end-user customers
+
+**Mapping Logic:**
+- Check reporter's email domain (@paidy.com = Internal)
+- Check ticket description for customer support forwarding
+- Default to Internal for phishing@paidy.com submissions
+
+### Attacker's Email Address (`customfield_10834`)
+**Type:** Text field
+**Value:** The sender's email address from the phishing attempt
+
+### Phishing Medium (`customfield_10836`)
+**Type:** Single select
+**Allowed Values:**
+- `Email` - Email-based phishing
+- `SMS` - SMS/text message (smishing)
+
+**Mapping Logic:**
+- Default to `Email` for SOCSD tickets (most common)
+- Set to `SMS` if description mentions text message/SMS
+
+### Phishing Techniques (`customfield_10837`)
+**Type:** Multi-select (array)
+**Allowed Values:**
+- `Impersonation` - Pretends to be legitimate entity
+- `Malicious domain/url` - Uses deceptive or malicious URLs
+- `Malicious Attachment` - Contains harmful attachments
+- `Marketing Email` - Legitimate marketing communication
+- `Legitimate Email` - Verified authentic email
+- `Phishing Exercise` - Internal security training
+- `Account Concern` - Account-related issues
+- `Billing Concern` - Billing/payment issues
+- `Paidy Partner` - From Paidy business partner
+- `Test` - Test submission
+
+**Mapping Logic (can select multiple):**
+- Impersonation detected → `Impersonation`
+- Suspicious/malicious URLs → `Malicious domain/url`
+- Attachments present → `Malicious Attachment`
+- Legitimate verified → `Legitimate Email`
+- Marketing platform confirmed → `Marketing Email`
+
+---
 
 ## Analysis Framework
 
@@ -273,6 +348,7 @@ If authentication cannot be fully verified from ticket alone:
 
 ### Atlassian (Jira)
 - `mcp__atlassian__getJiraIssue` - Fetch ticket details
+- `mcp__atlassian__editJiraIssue` - Update ticket custom fields
 - `mcp__atlassian__addCommentToJiraIssue` - Post analysis results
 
 ### DNS & Domain Analysis
@@ -290,6 +366,32 @@ If authentication cannot be fully verified from ticket alone:
 - `WebFetch` - Fetch and analyze web content (if needed)
 
 ## Technical Implementation Notes
+
+### Jira Field Update Pattern
+
+After completing the analysis, update the ticket fields with `mcp__atlassian__editJiraIssue`:
+
+```javascript
+{
+  "cloudId": "paidy-portal.atlassian.net",
+  "issueIdOrKey": "SOCSD-12345",
+  "fields": {
+    "customfield_10805": {"value": "Phishing Report"},  // Request Category
+    "customfield_11136": {"value": "Internal (Paidy Employee)"},  // Customer Type
+    "customfield_10834": "attacker@example.com",  // Attacker's Email Address (string)
+    "customfield_10836": {"value": "Email"},  // Phishing Medium
+    "customfield_10837": [  // Phishing Techniques (array)
+      {"value": "Impersonation"},
+      {"value": "Malicious domain/url"}
+    ]
+  }
+}
+```
+
+**Field Value Format:**
+- Single-select fields (Request Category, Customer Type, Phishing Medium): `{"value": "Option Name"}`
+- Multi-select fields (Phishing Techniques): Array of `{"value": "Option Name"}` objects
+- Text fields (Attacker's Email Address): Direct string value
 
 ### DNS Checks Pattern
 ```bash
