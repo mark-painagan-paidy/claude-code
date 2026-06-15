@@ -8,6 +8,35 @@ This repository contains custom skills for [Claude Code](https://claude.ai/code)
 
 ## Available Skills
 
+### 🛡️ Threat Intelligence (CTI)
+
+Automated cyber threat intelligence gathering focused on Japan, breaches, and Japan-related FinTech threats. Fetches intelligence from multiple OSINT sources and posts reports to Slack.
+
+**Features:**
+- Multi-source intelligence gathering (BleepingComputer, The Hacker News, CISA KEV, JPCERT/CC)
+- Japan-focused threat monitoring (APT groups, breaches, incidents)
+- Breach intelligence (data breaches, ransomware, compromises)
+- Japan-FinTech threat tracking (only if Japan-related)
+- Automatic Slack integration for report delivery
+- IOC extraction and vulnerability tracking
+
+**Sources:**
+- BleepingComputer & The Hacker News (latest security news)
+- CISA Known Exploited Vulnerabilities (KEV)
+- JPCERT/CC (Japan Computer Emergency Response Team)
+- URLhaus & ThreatFox (malware IOCs)
+- CrowdStrike & Mandiant threat intelligence
+
+**Usage:** 
+```bash
+/threat-intel                    # Generate report and post to Slack
+/loop 24h /threat-intel         # Daily automated reports
+```
+
+[View detailed documentation →](skills/threat-intel/skill.md)
+
+---
+
 ### 🎣 Phishing Analysis
 
 Automated phishing email analysis that integrates with Jira Service Desk tickets.
@@ -23,6 +52,16 @@ Automated phishing email analysis that integrates with Jira Service Desk tickets
 **Usage:** `/phishing-analysis SOCSD-12345`
 
 [View detailed documentation →](skills/phishing-analysis/SKILL.md)
+
+---
+
+### 📧 Header Analysis
+
+Email header analysis for authentication verification and routing analysis.
+
+**Usage:** `/header-analysis`
+
+[View detailed documentation →](skills/header-analysis/)
 
 ## Installation
 
@@ -57,8 +96,9 @@ Automated phishing email analysis that integrates with Jira Service Desk tickets
 
 ### MCP Server Configuration
 
-The phishing-analysis skill requires the Atlassian MCP server for Jira integration. Add to your Claude Code settings:
+Skills require various MCP servers for integrations:
 
+**For phishing-analysis (Jira integration):**
 ```json
 {
   "mcpServers": {
@@ -70,12 +110,28 @@ The phishing-analysis skill requires the Atlassian MCP server for Jira integrati
 }
 ```
 
+**For threat-intel (Slack integration):**
+```json
+{
+  "mcpServers": {
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-slack"]
+    }
+  }
+}
+```
+
 ## Skill Structure
 
 ```
 skills/
-└── phishing-analysis/
-    └── SKILL.md          # Main skill definition
+├── threat-intel/
+│   └── skill.md          # Threat intelligence gathering
+├── phishing-analysis/
+│   └── SKILL.md          # Phishing email analysis
+└── header-analysis/
+    └── skill.md          # Email header analysis
 ```
 
 Each skill follows the Claude Code skill format:
@@ -93,6 +149,7 @@ Each skill follows the Claude Code skill format:
 
 ### MCP Servers
 - **Atlassian MCP** - Jira integration for ticket management
+- **Slack MCP** - Slack integration for threat intelligence reports
 
 ### Permissions
 
@@ -104,6 +161,23 @@ The skills may prompt for permission to:
 - Post comments to Jira tickets
 
 ## Usage Examples
+
+### Threat Intelligence
+
+```bash
+# Generate and post threat intelligence report to Slack
+/threat-intel
+
+# Schedule daily automated reports
+/loop 24h /threat-intel
+```
+
+The skill will:
+1. Fetch intelligence from multiple sources (BleepingComputer, The Hacker News, CISA, JPCERT/CC)
+2. Filter for Japan-related threats, breaches, and APT activity
+3. Extract IOCs and vulnerability information
+4. Generate comprehensive CTI report
+5. Automatically post report to configured Slack channel
 
 ### Phishing Analysis
 
@@ -119,6 +193,15 @@ The skill will:
 4. Test URL reputation and redirects
 5. Generate a comprehensive analysis report
 6. Post findings as a comment to the ticket
+
+### Header Analysis
+
+```bash
+# Analyze email headers for authentication
+/header-analysis
+```
+
+The skill will analyze email headers for SPF, DKIM, DMARC verification and routing information.
 
 ## Contributing
 
