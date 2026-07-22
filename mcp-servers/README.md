@@ -4,43 +4,76 @@ This directory documents the Model Context Protocol (MCP) servers configured for
 
 ## Active MCP Servers
 
-### 1. **Slack** 💬
-- **Package**: `@modelcontextprotocol/server-slack`
-- **Type**: NPX (Node.js)
-- **Purpose**: Slack workspace integration for reading channels, searching messages, posting updates, managing canvases
+### 1. **Atlassian (Jira & Confluence)** 🔷
+- **Type**: Cloud-connected (via claude.ai)
+- **Purpose**: Jira issue management and Confluence page operations
+- **Status**: ✅ Active
+- **Workspace**: paidy-portal.atlassian.net
+
+**Capabilities:**
+- Jira issue CRUD operations
+- Custom field management
+- Comments and worklogs
+- JQL search queries
+- Issue transitions
+- Confluence page reading/editing
+- CQL search queries
+
+**Key Tools:**
+- `mcp__atlassian__getJiraIssue` - Get issue details
+- `mcp__atlassian__editJiraIssue` - Update issue fields
+- `mcp__atlassian__addCommentToJiraIssue` - Add comments
+- `mcp__atlassian__searchJiraIssuesUsingJql` - Search with JQL
+- `mcp__atlassian__getConfluencePage` - Read Confluence pages
+- `mcp__atlassian__updateConfluencePage` - Update pages
+
+**Configuration:**
+```
+Cloud-connected via claude.ai OAuth
+No local configuration needed
+```
+
+---
+
+### 2. **CrowdStrike Falcon** 🦅
+- **Package**: `falcon-mcp`
+- **Type**: UVX (Python)
+- **Purpose**: CrowdStrike Falcon endpoint security and threat intelligence
 - **Status**: ✅ Active
 
 **Capabilities:**
-- Search public/private channels
-- Read channel messages and threads
-- Send messages and drafts
-- Create and update canvases
-- Manage reactions
-- Read user profiles
-- Schedule messages
+- Vulnerability scanning
+- Host/endpoint management
+- Detection searching
+- IOC management
+- Real-time response (RTR) sessions
+- Threat intelligence queries
+- Case management
 
 **Key Tools:**
-- `slack_read_channel` - Read messages from channels
-- `slack_search_public` / `slack_search_public_and_private` - Search messages
-- `slack_send_message` - Post messages
-- `slack_read_canvas` / `slack_update_canvas` / `slack_create_canvas` - Canvas management
-- `slack_read_thread` - Read thread replies
-- `slack_read_user_profile` - Get user information
+- `falcon_search_vulnerabilities` - Search for CVEs
+- `falcon_get_host_details` - Get endpoint info
+- `falcon_search_detections` - Search detections
+- `falcon_init_rtr_session` - Start RTR session
+- `falcon_search_iocs` - Search IOCs
+- `falcon_create_case` - Create security cases
 
 **Configuration:**
 ```json
 {
-  "command": "npx",
-  "args": ["-y", "@modelcontextprotocol/server-slack"],
+  "command": "uvx",
+  "args": ["--from", "falcon-mcp", "falcon-mcp"],
   "env": {
-    "NODE_EXTRA_CA_CERTS": "/Users/mark.painagan/.claude/certs/combined-ca-bundle.pem"
+    "FALCON_CLIENT_ID": "***",
+    "FALCON_CLIENT_SECRET": "***",
+    "FALCON_BASE_URL": "https://api.crowdstrike.com"
   }
 }
 ```
 
 ---
 
-### 2. **GitHub** 🐙
+### 3. **GitHub** 🐙
 - **Package**: `@modelcontextprotocol/server-github`
 - **Type**: NPX (Node.js)
 - **Purpose**: GitHub repository and issue management
@@ -80,7 +113,43 @@ This directory documents the Model Context Protocol (MCP) servers configured for
 
 ---
 
-### 3. **CrowdStrike Falcon** 🦅
+### 4. **Slack** 💬
+- **Package**: `@modelcontextprotocol/server-slack`
+- **Type**: NPX (Node.js)
+- **Purpose**: Slack workspace integration for reading channels, searching messages, posting updates, managing canvases
+- **Status**: ✅ Active
+
+**Capabilities:**
+- Search public/private channels
+- Read channel messages and threads
+- Send messages and drafts
+- Create and update canvases
+- Manage reactions
+- Read user profiles
+- Schedule messages
+
+**Key Tools:**
+- `slack_read_channel` - Read messages from channels
+- `slack_search_public` / `slack_search_public_and_private` - Search messages
+- `slack_send_message` - Post messages
+- `slack_read_canvas` / `slack_update_canvas` / `slack_create_canvas` - Canvas management
+- `slack_read_thread` - Read thread replies
+- `slack_read_user_profile` - Get user information
+
+**Configuration:**
+```json
+{
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-slack"],
+  "env": {
+    "NODE_EXTRA_CA_CERTS": "/Users/mark.painagan/.claude/certs/combined-ca-bundle.pem"
+  }
+}
+```
+
+---
+
+### 5. **Orca Security** 🐋
 - **Package**: `falcon-mcp`
 - **Type**: UVX (Python)
 - **Purpose**: CrowdStrike Falcon endpoint security and threat intelligence
@@ -124,7 +193,7 @@ This directory documents the Model Context Protocol (MCP) servers configured for
 
 ---
 
-### 4. **Orca Security** 🐋
+### 5. **Orca Security** 🐋
 - **Type**: HTTP (Remote MCP Server)
 - **URL**: `https://mcp.orcasecurity.io`
 - **Purpose**: Cloud security posture management and vulnerability assessment
@@ -190,11 +259,11 @@ Custom CA certificates are configured for corporate proxy/SSL inspection:
 
 MCP servers are extensively used in custom skills:
 
-- **threat-intel**: Uses Slack MCP to read CTI channel, post reports
-- **phishing-analysis**: Uses Atlassian (Jira) MCP for ticket management
-- **header-analysis**: Uses Atlassian MCP for email header analysis
-- **vuln-check**: Uses Orca Security and CrowdStrike MCPs
-- **update-security-report**: Uses Slack MCP for canvas updates
+- **phishing-analysis**: Uses Atlassian (Jira) MCP for SOCSD ticket management, field updates, posting analysis
+- **header-analysis**: Uses Atlassian (Jira) MCP for reading email headers from tickets, posting results
+- **threat-intel**: Uses Slack MCP to read CTI channel, post threat intelligence reports
+- **update-security-report**: Uses Slack MCP for weekly security canvas updates
+- **vuln-check**: Uses Orca Security, CrowdStrike, and GitHub MCPs for CVE vulnerability assessment
 
 ## Troubleshooting
 
