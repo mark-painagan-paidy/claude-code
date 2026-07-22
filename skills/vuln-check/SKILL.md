@@ -39,16 +39,27 @@ The skill accepts:
 
 ### 1. Parse Input
 - Extract CVE ID from user input
-- Identify additional context (product names, keywords)
-- Validate CVE format
+- Identify additional context (product names, keywords, library names)
+- Validate CVE format or library name
 
-### 2. Query Orca Security
+### 2. Search GitHub Organization (paidy)
+For CVE or library name (e.g., libssh2, log4j, spring):
+- **Get all repositories**: Use `gh repo list paidy --limit 1000` to get all org repos
+- **Search in multiple file types**:
+  - Dockerfiles: `yum update`, `apt install`, `apk add` commands
+  - Dependency files: `package-lock.json`, `yarn.lock`, `Gemfile.lock`, `pom.xml`, `build.gradle`, `requirements.txt`, `go.mod`, `Cargo.lock`
+  - Docker compose: `docker-compose.yml`, `docker-compose.yaml`
+  - CI/CD configs: `.github/workflows/*.yml`, `.gitlab-ci.yml`, `Jenkinsfile`
+- **Search strategy**: For each repo, check via GitHub API (`gh api repos/paidy/{repo}/contents/{file}`)
+- **Output**: List of repositories containing the vulnerable library/package
+
+### 3. Query Orca Security
 Use `mcp__orca__ask_orca` to check cloud environment:
 - Query: "Am I vulnerable to [CVE-ID]? Show me all affected assets."
 - Alternative: "Show me assets affected by [vulnerability name]"
 - Orca returns: Risk level, affected asset types, and top results
 
-### 3. Query CrowdStrike Falcon
+### 4. Query CrowdStrike Falcon
 Use `mcp__crowdstrike__falcon_search_vulnerabilities` to check endpoints:
 
 **Step 1**: Search for the CVE with host info
@@ -72,7 +83,7 @@ facet: "cve"
 limit: 10
 ```
 
-### 4. Get Affected Host Details
+### 5. Get Affected Host Details
 For each affected host ID from CrowdStrike:
 - Use `mcp__crowdstrike__falcon_get_host_details` to get full context
 - Extract: hostname, OS, IP addresses, last seen, agent version

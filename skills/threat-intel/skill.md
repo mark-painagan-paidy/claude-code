@@ -50,12 +50,33 @@ Query the following sources in parallel:
 - Filter: Look for Japan-related campaigns or infrastructure
 - Focus: IOCs from APT groups known to target Japan
 
-### 8. Security Vendor Intelligence
+### 8. Internal CTI Slack Channel
+- **Channel ID**: `C04M2SB3EBD` (https://exco.slack.com/archives/C04M2SB3EBD)
+- **Method**: Use `mcp__slack__slack_read_channel` (primary) and `mcp__slack__slack_search_public_and_private` (secondary)
+- **Primary Strategy**: Read recent messages (last 100-200 messages, ~3-7 days)
+  - Most intelligence is in **file attachments** (CSA reports, JPCERT advisories)
+  - Parse message text and file metadata for relevant content
+  - Look for patterns: "CSA-", "CSDR-", "JPCERT", ".jp", breach names, company names
+- **Search Strategies** (if needed for deeper analysis):
+  1. Broad geographic: `japan OR japanese OR .jp OR JPCERT OR APAC OR Asia OR China OR Korea OR "South Korea" OR "North Korea"`
+  2. Breach/incident keywords: `breach OR ransomware OR "data breach" OR leak OR compromised OR hacked OR extortion OR stolen`
+  3. APT groups: `APT10 OR APT40 OR Lazarus OR APT41 OR Tick OR "Stone Panda" OR "Bronze Butler" OR MenuPass OR Kimsuky OR APT37`
+  4. Critical infrastructure: `fortinet OR FortiGate OR cisco OR "supply chain" OR vulnerability OR CVE OR zero-day OR 0day`
+  5. File search: Search with `content_types="files"` to find PDF/HTML reports
+- **Filter Priority**:
+  1. JPCERT/CC advisories (Japan CERT - highest priority)
+  2. CrowdStrike reports mentioning Japan, APAC, or relevant threat actors
+  3. Breach incidents affecting Asian companies or .jp domains
+  4. APT campaigns with APAC targeting
+  5. Critical vulnerabilities in widely-used infrastructure
+- **Output**: Include report IDs (CSA-#, CSDR-#), JPCERT advisories, timestamps, and key findings
+
+### 9. Security Vendor Intelligence
 - CrowdStrike Blog: Search for "Japan" or APT groups targeting Japan
 - Mandiant/Google TAG: APT groups targeting APAC region, Japan-specific breaches
 - JPCERT/CC: Japan Computer Emergency Response Team advisories
 
-### 9. CrowdStrike Falcon (if available)
+### 10. CrowdStrike Falcon (if available)
 Query your Falcon tenant for:
 - Recent detections in your environment
 - Threat actor intelligence matching Japan profile
@@ -86,10 +107,17 @@ Query your Falcon tenant for:
 
 ## Workflow
 
-1. **Fetch intelligence**: Query all sources in parallel using WebFetch
-2. **Generate report**: Compile and format the threat intelligence report
-3. **Post to Slack**: Automatically post the complete report to Slack channel `C0BA3Q4NS6B` using `mcp__slack__slack_send_message`
-4. **Confirm delivery**: Provide the Slack message link to the user
+1. **Fetch intelligence**: Query all sources in parallel
+   - Use WebFetch for external sources (CISA, BleepingComputer, etc.)
+   - Use `mcp__slack__slack_read_channel` and `mcp__slack__slack_search_public_and_private` for internal CTI Slack channel
+2. **Scan CTI Slack Channel**: Specifically search the internal CTI channel (`C04M2SB3EBD`) for:
+   - Recent messages mentioning Japan, Japanese organizations, or .jp domains
+   - Breach reports, ransomware incidents, or data leaks
+   - APT activity targeting Japan or APAC region
+   - Any threat intelligence shared by the team that matches filtering criteria
+3. **Generate report**: Compile and format the threat intelligence report
+4. **Post to Slack**: Automatically post the complete report to Slack channel `C0BA3Q4NS6B` using `mcp__slack__slack_send_message`
+5. **Confirm delivery**: Provide the Slack message link to the user
 
 ## Output Format
 
@@ -108,6 +136,9 @@ Structure the report as:
 
 ## 🎯 Japan-Targeted Threats
 [APT campaigns, malware, attacks specifically targeting Japan or Japanese organizations]
+
+## 💬 Internal CTI Channel Highlights
+[Recent intelligence from internal CTI Slack channel related to Japan, breaches, or relevant threats]
 
 ## 🏦 Japan FinTech Threats (if applicable)
 [Financial sector threats ONLY if they involve Japan or Japanese financial institutions]
@@ -128,16 +159,35 @@ Structure the report as:
 ## Implementation Notes
 
 1. **Parallel fetching**: Use WebFetch for all HTTP sources simultaneously
-2. **Error handling**: If a source is unavailable, note it but continue with others
-3. **Deduplication**: Remove duplicate CVEs/IOCs across sources
-4. **Prioritization Rules**:
+2. **Internal CTI Slack Scanning**:
+   - **PRIMARY METHOD**: Use `mcp__slack__slack_read_channel` with channel_id `C04M2SB3EBD` to fetch last 100-200 messages
+   - **Parse message content for**:
+     - CrowdStrike report IDs: CSA-######, CSDR-######
+     - JPCERT advisories: AT######, WR######
+     - File attachments (HTML reports from Slackbot)
+     - Keywords: Japan, Japanese, JPCERT, APAC, Asia, breach, ransomware, APT groups, FortiGate, Cisco, zero-day
+     - Company/victim names in breach reports
+   - **SECONDARY METHOD**: Use `mcp__slack__slack_search_public_and_private` for deep searches:
+     - Geographic: `"japan OR japanese OR .jp OR JPCERT OR APAC in:<#C04M2SB3EBD> after:YYYY-MM-DD"`
+     - Incidents: `"breach OR ransomware OR leak OR compromised in:<#C04M2SB3EBD> after:YYYY-MM-DD"`
+     - APT actors: `"APT10 OR APT40 OR Lazarus OR APT41 OR Kimsuky in:<#C04M2SB3EBD> after:YYYY-MM-DD"`
+     - Files: Use `content_types="files"` to search report attachments
+   - **Extract and report**:
+     - Report IDs and titles (e.g., "CSA-260773: Brazil Emergency Alert System Breach")
+     - JPCERT advisory numbers and summaries
+     - Key findings from CrowdStrike reports relevant to Japan/APAC
+     - Breach victims, threat actors, TTPs mentioned
+     - Include Slack message timestamps for reference
+3. **Error handling**: If a source is unavailable, note it but continue with others
+4. **Deduplication**: Remove duplicate CVEs/IOCs across sources, including duplicates from internal Slack channel
+5. **Prioritization Rules**:
    - PRIMARY: Any threat targeting Japan (all sectors, including breaches)
    - SECONDARY: FinTech threats ONLY if Japan-related
    - EXCLUDE: General FinTech threats without Japan connection
-5. **Breach Focus**: Prioritize data breaches, ransomware incidents, compromises in Japan
-6. **Freshness**: Include timestamps to show recency of intelligence
-7. **Actionability**: For each threat, include: severity, affected products/organizations, mitigation steps
-8. **Slack Integration**: After generating the report, automatically post to Slack channel `C0BA3Q4NS6B` using the `mcp__slack__slack_send_message` tool
+6. **Breach Focus**: Prioritize data breaches, ransomware incidents, compromises in Japan
+7. **Freshness**: Include timestamps to show recency of intelligence
+8. **Actionability**: For each threat, include: severity, affected products/organizations, mitigation steps
+9. **Slack Integration**: After generating the report, automatically post to Slack channel `C0BA3Q4NS6B` using the `mcp__slack__slack_send_message` tool
 
 ## Usage
 
